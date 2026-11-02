@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AetherGrid // Kinetic Distributed Task Architecture</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f4ff',
+                            100: '#e0e8ff',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            900: '#1e1b4b',
+                        },
+                        cyan: {
+                            400: '#22d3ee',
+                            500: '#06b6d4',
+                        },
+                        dark: {
+                            900: '#060913',
+                            800: '#0b1120',
+                            700: '#121a2d',
+                            600: '#1e293b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    animation: {
+                        'pulse-glow': 'pulseGlow 4s ease-in-out infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%, 100%': { opacity: 0.4, transform: 'scale(1)' },
+                            '50%': { opacity: 0.8, transform: 'scale(1.05)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #060913;
+            color: #f1f5f9;
+            overflow-x: hidden;
+        }
+
+        /* Spatial Glassmorphism */
+        .glass-panel {
+            background: rgba(18, 26, 45, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px -10px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Gradient Text */
+        .gradient-text {
+            background: linear-gradient(135deg, #818cf8 0%, #22d3ee 50%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #060913;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4f46e5;
+        }
+
+        /* Kinetic Ambient Glow */
+        .ambient-glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Ambient Lighting Elements -->
+    <div class="ambient-glow w-[500px] h-[500px] bg-brand-600/20 top-[-100px] left-[-100px] animate-pulse-glow"></div>
+    <div class="ambient-glow w-[600px] h-[600px] bg-cyan-500/15 top-[40%] right-[-150px] animate-pulse-glow" style="animation-delay: 2s;"></div>
+    <div class="ambient-glow w-[450px] h-[450px] bg-purple-600/15 bottom-[10%] left-[20%] animate-pulse-glow" style="animation-delay: 4s;"></div>
+
+    <!-- Main Wrapper -->
+    <div class="relative z-10 flex flex-col min-h-screen">
+
+        <!-- Top Navigation Bar -->
+        <header class="sticky top-0 z-50 glass-panel border-b border-white/10 px-6 py-4">
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-brand-500/30">
+                        <i class="fa-solid font-mono text-white font-bold text-lg">Æ</i>
+                    </div>
+                    <span class="font-extrabold text-xl tracking-tight text-white">Aether<span class="gradient-text">Grid</span></span>
+                    <span class="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-xs font-mono bg-brand-500/10 text-brand-400 border border-brand-500/20">v2.4 Distributed Spec</span>
+                </div>
+
+                <nav class="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-300">
+                    <a href="#topology" class="hover:text-cyan-400 transition-colors">Topology Simulator</a>
+                    <a href="#scalability" class="hover:text-cyan-400 transition-colors">Scalability</a>
+                    <a href="#communication" class="hover:text-cyan-400 transition-colors">IPC & Consensus</a>
+                    <a href="#fault-tolerance" class="hover:text-cyan-400 transition-colors">Fault Mitigation</a>
+                    <a href="#concurrency" class="hover:text-cyan-400 transition-colors">Data Integrity</a>
+                </nav>
+
+                <div class="flex items-center space-x-4">
+                    <button id="btn-toggle-sim" onclick="toggleSimulation()" class="px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs sm:text-sm transition-all shadow-lg shadow-brand-600/25 flex items-center gap-2">
+                        <i class="fa-solid fa-pause" id="sim-icon"></i>
+                        <span id="sim-text">Pause Simulation</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-16">
+
+            <!-- Hero & Live Topology Visualizer -->
+            <section id="topology" class="space-y-6">
+                <div class="text-center max-w-3xl mx-auto space-y-4">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-mono">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                        Live Interactive Mesh Canvas
+                    </div>
+                    <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+                        Distributed Task Orchestration <br>
+                        <span class="gradient-text">Engine Architecture</span>
+                    </h1>
+                    <p class="text-slate-400 text-base sm:text-lg">
+                        Interactive architectural breakdown of a fault-tolerant, horizontally scalable async task execution engine designed for high throughput and zero-data-loss integrity.
+                    </p>
+                </div>
+
+                <!-- Simulation Canvas Card -->
+                <div class="glass-panel rounded-2xl p-4 sm:p-6 relative overflow-hidden">
+                    <!-- Controls Bar -->
+                    <div class="flex flex-wrap items-center justify-between gap-4 pb-4 mb-4 border-b border-white/5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-mono text-slate-400 uppercase tracking-wider">Simulation Controls:</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 text-xs font-mono">
+                            <button onclick="injectPayload()" class="px-3 py-1.5 rounded-md bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 transition-all flex items-center gap-1.5">
+                                <i class="fa-solid fa-paper-plane"></i> Inject Load (+100 Packets)
+                            </button>
+                            <button onclick="toggleWorkerFailure()" id="btn-kill-worker" class="px-3 py-1.5 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-all flex items-center gap-1.5">
+                                <i class="fa-solid fa-skull"></i> Simulate Worker Failure
+                            </button>
+                            <button onclick="triggerPartition()" id="btn-partition" class="px-3 py-1.5 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 transition-all flex items-center gap-1.5">
+                                <i class="fa-solid fa-network-wired"></i> Trigger Network Partition
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Frame -->
+                    <div class="relative w-full h-[400px] sm:h-[480px] rounded-xl bg-dark-900/80 overflow-hidden border border-white/5">
+                        <canvas id="topologyCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+                        
+                        <!-- Overlay Stats -->
+                        <div class="absolute bottom-4 left-4 right-4 sm:right-auto flex flex-wrap gap-3">
+                            <div class="glass-panel px-3 py-2 rounded-lg text-xs font-mono">
+                                <span class="text-slate-400">Ingress Rate:</span>
+                                <span class="text-cyan-400 font-bold ml-1" id="stat-ingress">1,420 ops/s</span>
+                            </div>
+                            <div class="glass-panel px-3 py-2 rounded-lg text-xs font-mono">
+                                <span class="text-slate-400">Active Workers:</span>
+                                <span class="text-emerald-400 font-bold ml-1" id="stat-workers">4 / 4 Online</span>
+                            </div>
+                            <div class="glass-panel px-3 py-2 rounded-lg text-xs font-mono">
+                                <span class="text-slate-400">Consensus Status:</span>
+                                <span class="text-brand-400 font-bold ml-1" id="stat-consensus">RAFT Quorum Active</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 1: Scalability Architecture -->
+            <section id="scalability" class="space-y-8">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-400">
+                        <i class="fa-solid fa-expand-arrows-alt text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">1. Scalability Architecture</h2>
+                        <p class="text-slate-400 text-sm">Horizontal elasticity and bottleneck elimination strategies</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Card 1 -->
+                    <div class="glass-card p-6 rounded-2xl space-y-4">
+                        <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400 font-bold">01</div>
+                        <h3 class="text-lg font-semibold text-white">Stateless Gateway Layer</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed">
+                            API Gateways retain zero session state. Incoming HTTP/gRPC requests are mapped directly to partition keys and forwarded via consistent hashing to task brokers.
+                        </p>
+                        <div class="pt-2">
+                            <span class="inline-block px-2.5 py-1 rounded bg-dark-700 text-slate-300 text-xs font-mono border border-white/5">Auto-Scaling Target: CPU > 75%</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div class="glass-card p-6 rounded-2xl space-y-4">
+                        <div class="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center text-brand-400 font-bold">02</div>
+                        <h3 class="text-lg font-semibold text-white">Partitioned Broker Logs</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed">
+                            Message queues are partitioned across cluster nodes using key hashing ($Hash(key) \pmod N$). Enables independent parallel processing across isolated node partitions.
+                        </p>
+                        <div class="pt-2">
+                            <span class="inline-block px-2.5 py-1 rounded bg-dark-700 text-slate-300 text-xs font-mono border border-white/5">Distributed Log Sharding</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div class="glass-card p-6 rounded-2xl space-y-4">
+                        <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 font-bold">03</div>
+                        <h3 class="text-lg font-semibold text-white">Dynamic Worker Pools</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed">
+                            Worker nodes pull jobs using an adaptive pull model. Worker pool sizes scale elastically based on total consumer lag metrics exposed by message brokers.
+                        </p>
+                        <div class="pt-2">
+                            <span class="inline-block px-2.5 py-1 rounded bg-dark-700 text-slate-300 text-xs font-mono border border-white/5">K8s HPA Consumer-Lag Driver</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Communication & Protocols -->
+            <section id="communication" class="space-y-8">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                        <i class="fa-solid fa-network-wired text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">2. Inter-Node Communication & Protocols</h2>
+                        <p class="text-slate-400 text-sm">Low-latency messaging channels and distributed state sync</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Left: Protocol Breakdown Table -->
+                    <div class="glass-panel p-6 rounded-2xl space-y-4">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-cyan-400"></i> Protocol Selection Matrix
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs font-mono">
+                                <thead>
+                                    <tr class="border-b border-white/10 text-slate-400">
+                                        <th class="py-2.5 px-3">Channel</th>
+                                        <th class="py-2.5 px-3">Protocol</th>
+                                        <th class="py-2.5 px-3">Subsystem</th>
+                                        <th class="py-2.5 px-3">Rationale</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-white/5 text-slate-300">
+                                    <tr>
+                                        <td class="py-2.5 px-3 text-cyan-400 font-bold">Client API</td>
+                                        <td class="py-2.5 px-3">gRPC / HTTP2</td>
+                                        <td class="py-2.5 px-3">Gateway</td>
+                                        <td class="py-2.5 px-3">Multiplexed streams, minimal overhead</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-3 text-brand-400 font-bold">Internal IPC</td>
+                                        <td class="py-2.5 px-3">Protobuf / TCP</td>
+                                        <td class="py-2.5 px-3">Broker & Workers</td>
+                                        <td class="py-2.5 px-3">Zero-copy serialization, high IOPS</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-3 text-purple-400 font-bold">Gossip Mesh</td>
+                                        <td class="py-2.5 px-3">SWIM / UDP</td>
+                                        <td class="py-2.5 px-3">Cluster Membership</td>
+                                        <td class="py-2.5 px-3">Heartbeats & decentralized node health</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-3 text-emerald-400 font-bold">Consensus</td>
+                                        <td class="py-2.5 px-3">Raft Consensus</td>
+                                        <td class="py-2.5 px-3">Metadata Store</td>
+                                        <td class="py-2.5 px-3">Strong consistency for cluster state</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Right: Code Snippet / Protocol Pipeline -->
+                    <div class="glass-panel p-6 rounded-2xl space-y-4 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between pb-3 border-b border-white/10">
+                                <span class="text-xs font-mono text-slate-400">task_contract.proto</span>
+                                <span class="text-xs font-mono text-emerald-400">gRPC v1.50</span>
+                            </div>
+                            <pre class="mt-4 p-4 rounded-xl bg-dark-900 text-xs font-mono text-slate-300 overflow-x-auto border border-white/5 leading-relaxed">
+<span class="text-purple-400">syntax</span> = <span class="text-emerald-300">"proto3"</span>;
+
+<span class="text-purple-400">message</span> <span class="text-yellow-300">TaskExecutionPayload</span> {
+  <span class="text-cyan-400">string</span> task_id = 1;
+  <span class="text-cyan-400">string</span> execution_key = 2;
+  <span class="text-cyan-400">int64</span> epoch_timestamp = 3;
+  <span class="text-cyan-400">bytes</span> execution_bytes = 4;
+  <span class="text-cyan-400">map</span>&lt;<span class="text-cyan-400">string</span>, <span class="text-cyan-400">string</span>&gt; metadata = 5;
+}
+
+<span class="text-purple-400">service</span> <span class="text-brand-400">TaskDispatcher</span> {
+  <span class="text-purple-400">rpc</span> <span class="text-yellow-300">SubmitStream</span> (stream TaskExecutionPayload) 
+    <span class="text-purple-400">returns</span> (ExecutionAck);
+}</pre>
+                        </div>
+                        <p class="text-xs text-slate-400">
+                            Strict binary contracts prevent payload drift while maximizing throughput across heterogeneous language workers.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Failure Mitigation Strategies -->
+            <section id="fault-tolerance" class="space-y-8">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                        <i class="fa-solid fa-shield-halved text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">3. Fault Mitigation & Resilience</h2>
+                        <p class="text-slate-400 text-sm">Handling node crashes, network partitions, and poison pill payloads</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="glass-card p-5 rounded-2xl space-y-3">
+                        <div class="text-rose-400 text-xl"><i class="fa-solid fa-rotate-right"></i></div>
+                        <h4 class="font-bold text-white text-sm">At-Least-Once + Ack Leases</h4>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            Workers claim tasks with time-bounded leases. If a worker dies mid-job, the lease expires and the broker re-enqueues the unacknowledged message.
+                        </p>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl space-y-3">
+                        <div class="text-amber-400 text-xl"><i class="fa-solid fa-skull-crossbones"></i></div>
+                        <h4 class="font-bold text-white text-sm">Dead Letter Queue (DLQ)</h4>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            Payloads that trigger worker crashes repeatedly ($> 3$ attempts) are isolated into a DLQ to prevent continuous partition blocking.
+                        </p>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl space-y-3">
+                        <div class="text-brand-400 text-xl"><i class="fa-solid fa-heart-pulse"></i></div>
+                        <h4 class="font-bold text-white text-sm">SWIM Failure Detector</h4>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            Decentralized gossip protocol checks node health. Suspect nodes enter a grace window before eviction to prevent false-positive cascading rebalances.
+                        </p>
+                    </div>
+
+                    <div class="glass-card p-5 rounded-2xl space-y-3">
+                        <div class="text-cyan-400 text-xl"><i class="fa-solid fa-split"></i></div>
+                        <h4 class="font-bold text-white text-sm">Quorum Fencing (Split-Brain)</h4>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            During network partitions, isolated minority sub-clusters reject writes using epoch fencing tokens, preventing state divergence across splits.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4: Concurrency & Shared State -->
+            <section id="concurrency" class="space-y-8">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                        <i class="fa-solid fa-database text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">4. Resource Sharing & Data Integrity</h2>
+                        <p class="text-slate-400 text-sm">Concurrency management, idempotency, and distributed locking</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-6 sm:p-8 rounded-2xl space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-semibold text-white">Distributed Lock Management</h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">
+                                When workers must access shared external resources (e.g., updating a global balance), locks are acquired via **Redis Redlock** or **Etcd lease locks** combined with a monotonic **Fencing Token**.
+                            </p>
+                            <div class="p-4 rounded-xl bg-dark-900 border border-white/5 space-y-2 text-xs font-mono">
+                                <div class="text-slate-400">// Fencing Token Validation Pattern</div>
+                                <div>1. Token = AcquireLock(<span class="text-cyan-400">resource_id</span>)</div>
+                                <div>2. Storage.Write(<span class="text-cyan-400">data</span>, <span class="text-brand-400">fence_token=Token</span>)</div>
+                                <div class="text-rose-400">3. Storage rejects if fence_token &lt; max_seen_token</div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-semibold text-white">Strict Idempotency Mechanics</h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">
+                                Because distributed delivery defaults to *at-least-once*, all task handlers must enforce idempotency via unique `task_id` deduplication tables with conditional updates.
+                            </p>
+                            <div class="p-4 rounded-xl bg-dark-900 border border-white/5 space-y-2 text-xs font-mono text-slate-300">
+                                <span class="text-purple-400">INSERT INTO</span> task_executions (task_id, status, result)<br>
+                                <span class="text-purple-400">VALUES</span> (<span class="text-emerald-300">'task_992'</span>, <span class="text-emerald-300">'COMPLETED'</span>, <span class="text-emerald-300">'payload'</span>)<br>
+                                <span class="text-purple-400">ON CONFLICT</span> (task_id) <span class="text-purple-400">DO NOTHING</span>;
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="glass-panel border-t border-white/10 mt-16 py-8 px-6 text-center text-xs font-mono text-slate-500">
+            <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>AetherGrid Distributed Architecture Specification &copy; 2026</div>
+                <div class="flex items-center space-x-6">
+                    <a href="#topology" class="hover:text-slate-300">Top</a>
+                    <a href="#scalability" class="hover:text-slate-300">Scalability</a>
+                    <a href="#communication" class="hover:text-slate-300">Protocols</a>
+                    <a href="#fault-tolerance" class="hover:text-slate-300">Resilience</a>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- JavaScript Interactive Simulation Engine -->
+    <script>
+        // Simulation State
+        const state = {
+            running: true,
+            workerFailed: false,
+            partitioned: false,
+            packets: [],
+            nodes: [
+                { id: 'gateway', label: 'API Gateway', x: 0.15, y: 0.5, color: '#22d3ee', icon: '\uf516' },
+                { id: 'broker', label: 'Task Broker Queue', x: 0.45, y: 0.5, color: '#818cf8', icon: '\uf233' },
+                { id: 'worker1', label: 'Worker Node 01', x: 0.75, y: 0.25, color: '#10b981', active: true, icon: '\uf109' },
+                { id: 'worker2', label: 'Worker Node 02', x: 0.75, y: 0.75, color: '#10b981', active: true, icon: '\uf109' },
+                { id: 'storage', label: 'Consensus DB / Storage', x: 0.9, y: 0.5, color: '#c084fc', icon: '\uf1c0' }
+            ]
+        };
+
+        const canvas = document.getElementById('topologyCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Spawn interactive packet animation
+        function spawnPacket(fromId, toId, color = '#22d3ee') {
+            const fromNode = state.nodes.find(n => n.id === fromId);
+            const toNode = state.nodes.find(n => n.id === toId);
+            if (!fromNode || !toNode) return;
+
+            state.packets.push({
+                x: fromNode.x,
+                y: fromNode.y,
+                targetX: toNode.x,
+                targetY: toNode.y,
+                progress: 0,
+                speed: 0.01 + Math.random() * 0.015,
+                color: color
+            });
+        }
+
+        // Main Animation Loop
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Draw Connections
+            const connections = [
+                ['gateway', 'broker'],
+                ['broker', 'worker1'],
+                ['broker', 'worker2'],
+                ['worker1', 'storage'],
+                ['worker2', 'storage']
+            ];
+
+            connections.forEach(([fromId, toId]) => {
+                const from = state.nodes.find(n => n.id === fromId);
+                const to = state.nodes.find(n => n.id === toId);
+
+                const isBlocked = state.partitioned && (fromId === 'broker' || toId === 'broker');
+
+                ctx.beginPath();
+                ctx.moveTo(from.x * w, from.y * h);
+                ctx.lineTo(to.x * w, to.y * h);
+                ctx.strokeStyle = isBlocked ? 'rgba(244, 63, 94, 0.4)' : 'rgba(255, 255, 255, 0.08)';
+                ctx.lineWidth = isBlocked ? 3 : 2;
+                if (isBlocked) ctx.setLineDash([6, 6]);
+                else ctx.setLineDash([]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            });
+
+            // Randomly Spawn Data Stream Packets
+            if (state.running && Math.random() < 0.3) {
+                spawnPacket('gateway', 'broker', '#22d3ee');
+            }
+            if (state.running && Math.random() < 0.25) {
+                if (!state.workerFailed) spawnPacket('broker', 'worker1', '#818cf8');
+                spawnPacket('broker', 'worker2', '#818cf8');
+            }
+            if (state.running && Math.random() < 0.2) {
+                if (!state.workerFailed) spawnPacket('worker1', 'storage', '#10b981');
+                spawnPacket('worker2', 'storage', '#10b981');
+            }
+
+            // Update & Render Packets
+            for (let i = state.packets.length - 1; i >= 0; i--) {
+                const p = state.packets[i];
+                if (state.running) p.progress += p.speed;
+
+                if (p.progress >= 1) {
+                    state.packets.splice(i, 1);
+                    continue;
+                }
+
+                const currentX = (p.x + (p.targetX - p.x) * p.progress) * w;
+                const currentY = (p.y + (p.targetY - p.y) * p.progress) * h;
+
+                ctx.beginPath();
+                ctx.arc(currentX, currentY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
+            // Draw Nodes
+            state.nodes.forEach(node => {
+                const nx = node.x * w;
+                const ny = node.y * h;
+
+                const isDead = node.id === 'worker1' && state.workerFailed;
+
+                // Outer Node Halo
+                ctx.beginPath();
+                ctx.arc(nx, ny, 24, 0, Math.PI * 2);
+                ctx.fillStyle = isDead ? 'rgba(244, 63, 94, 0.15)' : 'rgba(18, 26, 45, 0.8)';
+                ctx.strokeStyle = isDead ? '#f43f5e' : node.color;
+                ctx.lineWidth = 2;
+                ctx.fill();
+                ctx.stroke();
+
+                // Inner Glow/Point
+                ctx.beginPath();
+                ctx.arc(nx, ny, 6, 0, Math.PI * 2);
+                ctx.fillStyle = isDead ? '#f43f5e' : node.color;
+                ctx.fill();
+
+                // Node Label
+                ctx.font = '11px "JetBrains Mono", monospace';
+                ctx.fillStyle = isDead ? '#f43f5e' : '#cbd5e1';
+                ctx.textAlign = 'center';
+                ctx.fillText(isDead ? `${node.label} (CRASHED)` : node.label, nx, ny + 40);
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // Control Functions
+        function toggleSimulation() {
+            state.running = !state.running;
+            document.getElementById('sim-text').innerText = state.running ? 'Pause Simulation' : 'Resume Simulation';
+            document.getElementById('sim-icon').className = state.running ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+        }
+
+        function injectPayload() {
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    spawnPacket('gateway', 'broker', '#22d3ee');
+                    if (Math.random() > 0.3) spawnPacket('broker', 'worker2', '#818cf8');
+                }, i * 50);
+            }
+        }
+
+        function toggleWorkerFailure() {
+            state.workerFailed = !state.workerFailed;
+            const btn = document.getElementById('btn-kill-worker');
+            const statWorkers = document.getElementById('stat-workers');
+
+            if (state.workerFailed) {
+                btn.classList.replace('bg-rose-500/20', 'bg-emerald-500/20');
+                btn.classList.replace('text-rose-300', 'text-emerald-300');
+                btn.innerHTML = '<i class="fa-solid fa-[#10b981] fa-heart-pulse"></i> Recover Worker Node';
+                statWorkers.innerText = '3 / 4 Online (Degraded)';
+                statWorkers.className = 'text-rose-400 font-bold ml-1';
+            } else {
+                btn.classList.replace('bg-emerald-500/20', 'bg-rose-500/20');
+                btn.classList.replace('text-emerald-300', 'text-rose-300');
+                btn.innerHTML = '<i class="fa-solid fa-skull"></i> Simulate Worker Failure';
+                statWorkers.innerText = '4 / 4 Online';
+                statWorkers.className = 'text-emerald-400 font-bold ml-1';
+            }
+        }
+
+        function triggerPartition() {
+            state.partitioned = !state.partitioned;
+            const btn = document.getElementById('btn-partition');
+            const statConsensus = document.getElementById('stat-consensus');
+
+            if (state.partitioned) {
+                btn.classList.replace('bg-amber-500/20', 'bg-brand-500/20');
+                btn.classList.replace('text-amber-300', 'text-brand-300');
+                btn.innerHTML = '<i class="fa-solid fa-link"></i> Heal Network Partition';
+                statConsensus.innerText = 'Fenced (Split-Brain Blocked)';
+                statConsensus.className = 'text-amber-400 font-bold ml-1';
+            } else {
+                btn.classList.replace('bg-brand-500/20', 'bg-amber-500/20');
+                btn.classList.replace('text-brand-300', 'text-amber-300');
+                btn.innerHTML = '<i class="fa-solid fa-network-wired"></i> Trigger Network Partition';
+                statConsensus.innerText = 'RAFT Quorum Active';
+                statConsensus.className = 'text-brand-400 font-bold ml-1';
+            }
+        }
+    </script>
+</body>
+</html>
